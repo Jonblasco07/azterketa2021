@@ -68,15 +68,18 @@ public class HasieraController implements Initializable {
         }
 
         List<Datuak> laglist= DatuakKud.getInstance().lortuDatuak(aux, md5a);
-        if (laglist==null){
-            System.out.println("aaaaaaa");
+        if (laglist.size()==0){
+            Datuak datuak = new Datuak(aux, md5a, "0");
+            datuLista1.add(datuak);
             datuaKargatu1();
+            text.setText("Datubasean ez dago");
+
 
         }else{
             Datuak datuak = laglist.get(0);
             datuLista1.add(datuak);
             datuaKargatu1();
-            System.out.println("bbbb");
+            text.setText("Datubasean dago");
         }
     }
 
@@ -113,7 +116,7 @@ public class HasieraController implements Initializable {
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         this.pantailaKargatu();
-
+        text.setText("");
 
     }
 
