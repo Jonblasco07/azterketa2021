@@ -1,8 +1,8 @@
 package ehu.isad.controllers.ui;
 
 import ehu.isad.Main;
-import ehu.isad.controllers.db.CaptchaKud;
-import ehu.isad.model.Captcha;
+import ehu.isad.controllers.db.DatuakKud;
+import ehu.isad.model.Datuak;
 import ehu.isad.utils.Sarea;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -10,130 +10,106 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.TableCell;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
+import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.text.Text;
 import javafx.util.Callback;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
+import java.security.DigestInputStream;
 
 public class HasieraController implements Initializable {
     Main main;
+    private List<Datuak> datuLista1 = new ArrayList<Datuak>();
+
 
     @FXML
-    private TableView<Captcha> taula;
-    @FXML
-    private TableColumn<Captcha, Integer> id;
+    private TextField textfield;
 
     @FXML
-    private TableColumn<Captcha, String> path;
+    private Button checkBtn;
 
     @FXML
-    private TableColumn<Captcha, String> content;
+    private TableView<Datuak> taula;
 
     @FXML
-    private TableColumn<Captcha, Integer> date;
+    private TableColumn<Datuak, String> url;
 
     @FXML
-    private TableColumn<Captcha, Image> irudia;
+    private TableColumn<Datuak, String> md5;
 
     @FXML
-    private Button txertatu;
+    private TableColumn<Datuak, String> version;
 
     @FXML
-    private Button gorde;
+    private Text text;
+
 
     @FXML
-    void g(ActionEvent event) {
-        List<Captcha> captchaLista = new ArrayList<Captcha>();
-        captchaLista = CaptchaKud.getInstance().lortuCaptcha();
-        for(int i=0; i<captchaLista.size(); i++){
-            CaptchaKud.getInstance().datuakEguneratu(captchaLista.get(i).getId(),captchaLista.get(i).getValue());
+    void begiratu(ActionEvent event) throws IOException {
+        String aux =textfield.getText();
+        String md5a= "aaa";
+        try {
+            md5a = Sarea.lortuMd5(aux);
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+
+        List<Datuak> laglist= DatuakKud.getInstance().lortuDatuak(aux, md5a);
+        if (laglist==null){
+            System.out.println("aaaaaaa");
+            datuaKargatu1();
+
+        }else{
+            Datuak datuak = laglist.get(0);
+            datuLista1.add(datuak);
+            datuaKargatu1();
+            System.out.println("bbbb");
         }
     }
 
-    @FXML
-    void t(ActionEvent event) {
-        List<Captcha> captchaLista = new ArrayList<Captcha>();
-        captchaLista = CaptchaKud.getInstance().lortuCaptcha();
-        int random = (int)(Math.random() * 90000000 + 1);
-        String izena = "capcha"+random;
-        Sarea.getInstance().irudiaGorde("http://45.32.169.98/captcha.php",izena);
-        CaptchaKud.getInstance().captchaGehitu(izena+".png");
-        datuaKargatu();
 
+
+
+    public void setMainApp(Main main) { this.main= main;}
+    private void datuaKargatu1(){
+        ObservableList<Datuak> datuak1 = FXCollections.observableArrayList(datuLista1);
+        taula.setItems(datuak1);
     }
-
-
-public void setMainApp(Main main) { this.main= main;}
-
 
     public void pantailaKargatu() {
         taula.setEditable(true);
-        List<Captcha> lagList = CaptchaKud.getInstance().lortuCaptcha();
-        ObservableList<Captcha> lagak = FXCollections.observableArrayList(lagList);
 
-        id.setCellValueFactory(new PropertyValueFactory<>("id"));
-        path.setCellValueFactory(new PropertyValueFactory<>("filename"));
-        content.setCellValueFactory(new PropertyValueFactory<>("value"));
-        date.setCellValueFactory(new PropertyValueFactory<>("date"));
+        url.setCellValueFactory(new PropertyValueFactory<>("url"));
+        md5.setCellValueFactory(new PropertyValueFactory<>("md5"));
+        version.setCellValueFactory(new PropertyValueFactory<>("version"));
 
-        taula.setItems(lagak);
-
-
-        //irudia jarri
-        irudia.setCellValueFactory(new PropertyValueFactory<>("Irudia"));
-        irudia.setCellFactory(p -> new TableCell<>() {
-            public void updateItem(Image image, boolean empty) {
-                if (image != null && !empty){
-                    final ImageView imageview = new ImageView();
-                    imageview.setFitHeight(20);
-                    imageview.setFitWidth(50);
-                    imageview.setImage(image);
-                    setGraphic(imageview);
-                    setAlignment(Pos.CENTER);
-                    // tbData.refresh();
-                }else{
-                    setGraphic(null);
-                    setText(null);
-                }
-            };
-        });
-
-        content.setOnEditCommit(
+        version.setOnEditCommit(
                 t->{
                     t.getTableView().getItems().get(t.getTablePosition().getRow())
-                            .setValue(t.getNewValue());
+                            .setVersion(t.getNewValue());
                 });
-
-        //Balioa editatu
-        Callback<TableColumn<Captcha, String>, TableCell<Captcha, String >> defaultTextFieldCellFactoryIzena
+        Callback<TableColumn<Datuak, String>, TableCell<Datuak, String >> defaultTextFieldCellFactory
                 = TextFieldTableCell.forTableColumn();
-
-        content.setCellFactory(col -> {
-            TableCell<Captcha, String> cell = defaultTextFieldCellFactoryIzena.call(col);
+        version.setCellFactory(col -> {
+            TableCell<Datuak, String> cell = defaultTextFieldCellFactory.call(col);
             return cell ;
         });
-
-        datuaKargatu();
+        datuaKargatu1();
 
     }
-    private void datuaKargatu(){
-        List<Captcha> captchaLista = new ArrayList<Captcha>();
-        captchaLista = CaptchaKud.getInstance().lortuCaptcha();
-        ObservableList<Captcha> captchas = FXCollections.observableArrayList(captchaLista);
-        taula.setItems(captchas);
-    }
-
-
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         this.pantailaKargatu();
